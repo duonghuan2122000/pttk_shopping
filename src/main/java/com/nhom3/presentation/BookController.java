@@ -5,11 +5,15 @@
  */
 package com.nhom3.presentation;
 
-import com.google.gson.Gson;
-import com.nhom3.logicApplication.userDAO.EmployeeDAO;
-import com.nhom3.logicApplication.userDAO.EmployeeDAOImpl;
-import com.nhom3.model.user.Employee;
+import com.nhom3.logicApplication.bookDAO.BookDAO;
+import com.nhom3.logicApplication.bookDAO.BookDAOImpl;
+import com.nhom3.logicApplication.orderDAO.CartDAO;
+import com.nhom3.logicApplication.orderDAO.CartDAOImpl;
+import com.nhom3.model.PagedResult;
+import com.nhom3.model.book.BookItem;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -22,13 +26,15 @@ import javax.servlet.http.HttpServletResponse;
  *
  * @author duong
  */
-@WebServlet(name = "EmployeeController", urlPatterns = {"/admin/login", "/admin/postLogin", "/admin/logout"})
-public class EmployeeController extends HttpServlet {
-    
-    private EmployeeDAO employeeDAO;
-    
-    public EmployeeController(){
-        employeeDAO = new EmployeeDAOImpl();
+@WebServlet(name = "BookController", urlPatterns = {"/books", "/book/addToCart"})
+public class BookController extends HttpServlet {
+
+    private BookDAO bookDAO;
+    private CartDAO cartDAO;
+
+    public BookController() {
+        bookDAO = new BookDAOImpl();
+        cartDAO = new CartDAOImpl();
     }
 
     /**
@@ -43,19 +49,14 @@ public class EmployeeController extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        
         String action = request.getServletPath();
-        
         try {
-            switch(action){
-                case "/admin/login":
-                    showLoginForm(request, response);
+            switch (action) {
+                case "/books":
+                    showBookList(request, response);
                     break;
-                case "/admin/postLogin":
-                    verify(request, response);
-                    break;
-                case "/admin/logout":
-                    logout(request, response);
+                case "/book/addToCart":
+                    addToCart(request, response);
                     break;
                 default:
                     break;
@@ -63,12 +64,6 @@ public class EmployeeController extends HttpServlet {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
-    }
-    
-    private void showLoginForm(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException{
-        RequestDispatcher dispatcher = request.getRequestDispatcher("/jsp/admin/login.jsp");
-        dispatcher.forward(request, response);
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
@@ -100,32 +95,37 @@ public class EmployeeController extends HttpServlet {
         processRequest(request, response);
     }
 
-    private void verify(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String username = request.getParameter("username").trim();
-        String password = request.getParameter("password").trim();
-        
-        Employee employee = employeeDAO.login(username, password);
-        
-        if(employee == null){
-            response.sendRedirect("/Shopping/admin/login");
-        } else {
-            Gson gson = new Gson();
-            String employeeStr = gson.toJson(employee);
-            addCookie(response, "employee", employeeStr);
-            response.sendRedirect("/Shopping");
-        }
-    }
-    
-    private void addCookie(HttpServletResponse response, String key, String value) {
-        Cookie cookie = new Cookie(key, value);
-        response.addCookie(cookie);
+    private void showBookList(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String search = request.getParameter("search") != null ? request.getParameter("search").trim() : "";
+        int page = request.getParameter("page") != null ? Integer.parseInt(request.getParameter("page")) : 1;
+        int pageSize = request.getParameter("pageSize") != null ? Integer.parseInt(request.getParameter("pageSize")) : 10;
+        PagedResult<BookItem> bookPag = bookDAO.getList(search, page, pageSize);
+        System.out.println(bookPag.getTotalRecord());
+        RequestDispatcher dispatcher = request.getRequestDispatcher("/jsp/book/list.jsp");
+        request.setAttribute("bookPag", bookPag);
+        dispatcher.forward(request, response);
     }
 
-    private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Cookie cookie = new Cookie("user", null);
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
-        response.sendRedirect("/Shopping/admin/login");
+    private void addToCart(HttpServletRequest request, HttpServletResponse response) {
+        int cartId = 0;
+        
+        Cookie[] cookies = request.getCookies();
+        if(cookies != null){
+            for(int i = 0; i < cookies.length; i++){
+                Cookie cookie = cookies[i];
+                if(cookie.getName().equalsIgnoreCase("cartId")){
+                    cartId = Integer.parseInt(cookie.getValue());
+                    break;
+                }
+            }
+        }
+        
+        if(cartId == 0){
+            cartId = cartDAO.createCart();
+        }
+        String barCode = request.getParameter("barCode");
+        int quantity = Integer.parseInt(request.getParameter("quantity"));
+        bookDAO.addToCart(barCode, quantity, cartId);
     }
 
 }

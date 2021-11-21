@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.nhom3.logicApplication.user;
+package com.nhom3.logicApplication.userDAO;
 
 import com.nhom3.model.user.Employee;
 import java.io.IOException;
