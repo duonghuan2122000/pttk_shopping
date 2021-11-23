@@ -90,8 +90,8 @@
         <script>
             $(function () {
                 $('.add-to-cart').click(function () {
-                    let barCode = $(this).attr('data-barcode');
-                    fetch(`/Shopping/book/addToCart?barCode=${barCode}&quantity=1`, {
+                    var barCode = $(this).attr('data-barcode');
+                    fetch("/Shopping/book/addToCart?barCode="+barCode+"&quantity=1", {
                         method: 'POST'
                     })
                             .then(res => res.json());

@@ -5,10 +5,14 @@
  */
 package com.nhom3.logicApplication.orderDAO;
 
+import com.nhom3.model.order.Cart;
+
 /**
  *
  * @author duong
  */
 public interface CartDAO {
-    int createCart();
+    Cart createCart();
+    Cart getCart(int id);
+    void updateCart(Cart cart);
 }

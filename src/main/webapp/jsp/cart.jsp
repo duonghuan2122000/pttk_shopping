@@ -1,3 +1,4 @@
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
          pageEncoding="UTF-8"%>
 <!doctype html>
@@ -38,13 +39,15 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                <c:forEach var="bookItem" items="${cart.books}">
                                     <tr>
-                                        <td>iPhone 13 Pro Max</td>
+                                        <td><c:out value="${bookItem.bookItem.book.title}" /></td>
                                         <td>
-                                            <input class="form-control" type="number" />
+                                            <input class="form-control" type="number" value="${bookItem.quantity}" />
                                         </td>
                                         <td><button class="btn btn-danger">Xóa</button></td>
                                     </tr>
+                                </c:forEach>
                                 </tbody>
                             </table>
                             <button class="btn btn-success">Lưu giỏ hàng</button>
@@ -54,7 +57,7 @@
                                 <div class="card-body">
                                     <div class="fs-3">Thông tin giỏ hàng</div>
                                     <div class="my-3">
-                                        Tổng tiền: 10.000đ
+                                        Tổng tiền: <c:out value="${cart.totalAmount}" />
                                     </div>
                                     <a href="/Shopping/order" class="btn btn-success d-block w-100">Thanh toán</a>
                                 </div>

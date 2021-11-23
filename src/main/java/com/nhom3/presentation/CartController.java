@@ -5,16 +5,10 @@
  */
 package com.nhom3.presentation;
 
-import com.nhom3.logicApplication.bookDAO.BookDAO;
-import com.nhom3.logicApplication.bookDAO.BookDAOImpl;
 import com.nhom3.logicApplication.orderDAO.CartDAO;
 import com.nhom3.logicApplication.orderDAO.CartDAOImpl;
-import com.nhom3.model.PagedResult;
-import com.nhom3.model.book.BookItem;
 import com.nhom3.model.order.Cart;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.List;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -28,14 +22,12 @@ import javax.servlet.http.HttpSession;
  *
  * @author duong
  */
-@WebServlet(name = "BookController", urlPatterns = {"/books", "/book/addToCart"})
-public class BookController extends HttpServlet {
+@WebServlet(name = "CartController", urlPatterns = {"/cart"})
+public class CartController extends HttpServlet {
 
-    private BookDAO bookDAO;
     private CartDAO cartDAO;
 
-    public BookController() {
-        bookDAO = new BookDAOImpl();
+    public CartController() {
         cartDAO = new CartDAOImpl();
     }
 
@@ -54,14 +46,12 @@ public class BookController extends HttpServlet {
         String action = request.getServletPath();
         try {
             switch (action) {
-                case "/books":
-                    showBookList(request, response);
-                    break;
-                case "/book/addToCart":
-                    addToCart(request, response);
+                case "/cart":
+                    showCart(request, response);
                     break;
                 default:
                     break;
+
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -97,22 +87,12 @@ public class BookController extends HttpServlet {
         processRequest(request, response);
     }
 
-    private void showBookList(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String search = request.getParameter("search") != null ? request.getParameter("search").trim() : "";
-        int page = request.getParameter("page") != null ? Integer.parseInt(request.getParameter("page")) : 1;
-        int pageSize = request.getParameter("pageSize") != null ? Integer.parseInt(request.getParameter("pageSize")) : 10;
-        PagedResult<BookItem> bookPag = bookDAO.getList(search, page, pageSize);
-        System.out.println(bookPag.getTotalRecord());
-        RequestDispatcher dispatcher = request.getRequestDispatcher("/jsp/book/list.jsp");
-        request.setAttribute("bookPag", bookPag);
-        dispatcher.forward(request, response);
-    }
-
-    private void addToCart(HttpServletRequest request, HttpServletResponse response) {
+    private void showCart(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         Cart cart = new Cart();
 
         HttpSession session = request.getSession();
         int cartId = session.getAttribute("cartId") != null ? (int) session.getAttribute("cartId") : 0;
+        System.out.println(cartId);
         cart.setId(cartId);
         if (cartId == 0) {
             cart = cartDAO.createCart();
@@ -120,11 +100,8 @@ public class BookController extends HttpServlet {
         } else {
             cart = cartDAO.getCart(cartId);
         }
-        String barCode = request.getParameter("barCode");
-        int quantity = Integer.parseInt(request.getParameter("quantity"));
-        bookDAO.addToCart(barCode, cartId, quantity);
-        BookItem bookItem = bookDAO.get(barCode);
-        cart.setTotalAmount(cart.getTotalAmount() + quantity * bookItem.getPrice());
-        cartDAO.updateCart(cart);
+        RequestDispatcher dispatcher = request.getRequestDispatcher("/jsp/cart.jsp");
+        request.setAttribute("cart", cart);
+        dispatcher.forward(request, response);
     }
 }

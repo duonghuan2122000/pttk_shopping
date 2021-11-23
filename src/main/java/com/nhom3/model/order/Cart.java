@@ -6,6 +6,7 @@
 package com.nhom3.model.order;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  *
@@ -15,11 +16,16 @@ public class Cart {
     private int id;
     private double totalAmount;
     private Date createdDate;
+    private List<BoughtBookItem> books;
 
     public Cart(int id, double totalAmount, Date createdDate) {
         this.id = id;
         this.totalAmount = totalAmount;
         this.createdDate = createdDate;
+    }
+    
+    public Cart(){
+        this.totalAmount = 0;
     }
 
     public int getId() {
@@ -44,6 +50,14 @@ public class Cart {
 
     public void setCreatedDate(Date createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public List<BoughtBookItem> getBooks() {
+        return books;
+    }
+
+    public void setBooks(List<BoughtBookItem> books) {
+        this.books = books;
     }
     
     

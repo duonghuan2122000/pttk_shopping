@@ -10,6 +10,7 @@ import com.nhom3.model.book.Author;
 import com.nhom3.model.book.Book;
 import com.nhom3.model.book.BookItem;
 import com.nhom3.model.book.Publisher;
+import com.nhom3.model.order.BoughtBookItem;
 import com.nhom3.utils.JdbcUtils;
 import java.io.IOException;
 import java.sql.Connection;
@@ -38,7 +39,45 @@ public class BookDAOImpl implements BookDAO {
 
     @Override
     public BookItem get(String barCode) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        BookItem bookItem = null;
+        String sql = "SELECT b.BarCode AS BarCode, b.Price AS Price, b.Discount AS Discount,\n"
+                + "  b1.Id AS BookId, b1.Title AS Title, b1.Summary AS Summary, b1.Pages AS Pages, b1.Language AS Language,\n"
+                + "  a.Id AS AuthorId, a.Name AS AuthorName, a.Biography AS AuthorBiography,\n"
+                + "  p.Id AS PId, p.Name AS PName, p.Address AS PAddress\n"
+                + "  FROM bookitem b \n"
+                + "  JOIN book b1 ON b.BookId = b1.Id\n"
+                + "  JOIN author a ON b1.AuthorId = a.Id\n"
+                + "  JOIN publisher p ON b1.PublisherId = p.Id\n"
+                + "  WHERE b.BarCode = ? LIMIT 1";
+        try (Connection connection = jdbcUtils.connect(); PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, barCode);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                int pId = rs.getInt("PId");
+                String pName = rs.getString("PName");
+                String pAddress = rs.getString("PAddress");
+                Publisher publisher = new Publisher(pId, pName, pAddress);
+
+                int aId = rs.getInt("AuthorId");
+                String aName = rs.getString("AuthorName");
+                String aBiography = rs.getString("AuthorBiography");
+                Author author = new Author(aId, aName, aBiography);
+
+                int bId = rs.getInt("BookId");
+                String bTitle = rs.getString("Title");
+                String bSummary = rs.getString("Summary");
+                int pages = rs.getInt("Pages");
+                String language = rs.getString("Language");
+                Book book = new Book(bId, bTitle, bSummary, pages, language, author, publisher);
+
+                double price = rs.getDouble("Price");
+                double discount = rs.getDouble("Discount");
+                bookItem = new BookItem(barCode, price, discount, book);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return bookItem;
     }
 
     @Override
@@ -124,14 +163,42 @@ public class BookDAOImpl implements BookDAO {
 
     @Override
     public void addToCart(String barCode, int cartId, int quantity) {
-        String sql = "INSERT INTO boughtBookItem (Quantity, BookBarCode, CartId) VALUES (?, ?, ?)";
-        try(Connection connection = jdbcUtils.connect(); PreparedStatement statement = connection.prepareStatement(sql)){
-            statement.setInt(1, quantity);
-            statement.setString(2, barCode);
-            statement.setInt(3, cartId);
-            statement.executeUpdate();
-        } catch(Exception ex){
+        BoughtBookItem item = new BoughtBookItem();
+        String sqlCheck = "SELECT * FROM boughtBookItem WHERE BookBarCode = ? AND CartId = ? LIMIT 1";
+        try (Connection connection = jdbcUtils.connect(); PreparedStatement statement = connection.prepareStatement(sqlCheck)) {
+            statement.setString(1, barCode);
+            statement.setInt(2, cartId);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                int id = rs.getInt("Id");
+                int mQuantity = rs.getInt("Quantity");
+                item.setId(id);
+                item.setQuantity(mQuantity);
+            }
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
+
+        if (item.getId() == 0) {
+            String sqlInsert = "INSERT INTO boughtBookItem (Quantity, BookBarCode, CartId) VALUES (?, ?, ?)";
+            try (Connection connection = jdbcUtils.connect(); PreparedStatement statement = connection.prepareStatement(sqlInsert)) {
+                statement.setInt(1, quantity);
+                statement.setString(2, barCode);
+                statement.setInt(3, cartId);
+                statement.executeUpdate();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        } else {
+            String sqlUpdate = "UPDATE boughtBookItem SET Quantity = ? WHERE Id = ?";
+            try(Connection connection = jdbcUtils.connect(); PreparedStatement statement = connection.prepareStatement(sqlUpdate)){
+                statement.setInt(1, item.getQuantity() + quantity);
+                statement.setInt(2, item.getId());
+                statement.executeUpdate();
+            } catch(Exception ex){
+                ex.printStackTrace();
+            }
+        }
+
     }
 }
